@@ -60,7 +60,7 @@ public class FileUtil {
         return false;
     }
 
-    public static void copyFile(File fromFile,File toFile){
+    public static void copyFile(File fromFile, File toFile) {
         BufferedInputStream buffIns = null;
         BufferedOutputStream buffOut = null;
         try {
@@ -68,7 +68,7 @@ public class FileUtil {
             buffOut = new BufferedOutputStream(new FileOutputStream(toFile));
             byte[] buff = new byte[1024 * 4];
             int n;
-            while((n = buffIns.read(buff)) != -1){
+            while ((n = buffIns.read(buff)) != -1) {
                 buffOut.write(buff, 0, n);
             }
         } catch (FileNotFoundException e) {
@@ -96,5 +96,20 @@ public class FileUtil {
     public interface ReaderCallback {
 
         void onReadLine(String line);
+    }
+
+    public static void removeDir(File dir) {
+        if (!dir.exists()) {
+            return;
+        }
+        File[] files = dir.listFiles();
+        for (File file : files) {
+            if (file.isDirectory()) {
+                removeDir(file);
+            } else {
+                file.delete();
+            }
+        }
+        dir.delete();
     }
 }

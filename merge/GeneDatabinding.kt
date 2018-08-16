@@ -4,10 +4,25 @@ import utils.FileUtil
 import java.io.File
 import java.util.regex.Pattern
 
-val baseLayoutPath = "/Users/ionesmile/Desktop/Package/FmxosGene/FmxosPlatform/src/main/res/layout"
-val outputDataBindingPath = "/Users/ionesmile/Desktop/Package/FmxosGene/FmxosPlatform/src/main/java/com/fmxos/platform/databinding"
+val layoutPath = "/src/main/res/layout"
+val dataBindingPath = "/src/main/java/com/fmxos/platform/databinding"
 
 fun main(args: Array<String>) {
+
+    execDataBinding(outputPath)
+}
+
+fun execDataBinding(projectPath: String) {
+
+    val outputDataBindingPath = projectPath + dataBindingPath
+    val baseLayoutPath = projectPath + layoutPath
+
+    var outputFile = File(outputDataBindingPath)
+    if (!outputFile.exists()) {
+        outputFile.mkdirs()
+
+        FileUtil.writeFile(File(outputFile, "ViewDataBinding.java"), ViewDataBinding)
+    }
 
     var codeList = StringBuilder()
     var layoutFiles = File(baseLayoutPath).listFiles()
@@ -18,14 +33,17 @@ fun main(args: Array<String>) {
         if (layoutContent.endsWith("</layout>")) {
             println(it.name)
 
-            geneCode(layoutContent, it, codeList)
+            geneCode(outputDataBindingPath, layoutContent, it, codeList)
 
             replaceLayoutTag(layoutContent, it)
         }
 
     }
 
-    println(codeList.toString())
+    var mapDataBinding = codeList.toString().trim()
+    mapDataBinding = mapDataBinding.replaceFirst("else ", "")
+    FileUtil.writeFile(File(outputFile, "DataBindingUtil.java"), DataBindingUtil.replaceFirst("REPLACE_MAP_DATA_BINDING", mapDataBinding))
+    println(mapDataBinding)
 }
 
 fun replaceLayoutTag(aaaa: String, sourceFile: File) {
@@ -47,7 +65,7 @@ fun replaceLayoutTag(aaaa: String, sourceFile: File) {
 
 }
 
-private fun geneCode(layoutContent: String, sourceFile: File, codeList: StringBuilder) {
+private fun geneCode(outputDataBindingPath: String, layoutContent: String, sourceFile: File, codeList: StringBuilder) {
     var findList = find(layoutContent, "<(((?!<)[\\s\\S])+?)android:id=\"([\\S]+?)\"", 0)
     var fieldList = arrayListOf<String>()
     var findIdList = arrayListOf<String>()
@@ -113,6 +131,7 @@ private fun upper_word(attr: String): String {
 val fullClassNameMap = mapOf<String, String>(
         "ImageView" to "android.widget.ImageView",
         "TextView" to "android.widget.TextView",
+        "EditText" to "android.widget.EditText",
         "Button" to "android.widget.Button",
         "View" to "android.view.View",
         "LinearLayout" to "android.widget.LinearLayout",
@@ -192,6 +211,8 @@ package com.fmxos.platform.databinding;
 
 import android.view.LayoutInflater;
 
+import com.fmxos.platform.R;
+
 /**
  * Created by ionesmile on 19/07/2018.
  */
@@ -199,7 +220,7 @@ import android.view.LayoutInflater;
 public class DataBindingUtil {
 
     public static <SV extends ViewDataBinding> SV inflate(LayoutInflater layoutInflater, int layoutId, Object o, boolean b) {
-
+REPLACE_MAP_DATA_BINDING
         return null;
     }
 }

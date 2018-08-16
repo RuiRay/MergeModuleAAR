@@ -5,18 +5,55 @@ import utils.ItemFile
 import java.io.File
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.collections.ArrayList
 
-val projectPath = "/Users/ionesmile/Documents/iOnesmileDocs/WorkSpace/Xiaoya/FmxosPlatform"
-val outputPath = "/Users/ionesmile/Desktop/Package/FmxosPlatform"
-val mergeLibName = arrayOf("fmxosLibrary", "baseLibrary", "loginLibrary", "baseUILibrary",
-        "unityResource", "httpLibrary", "dynamicPage", "audioPlayer", "database", "filedownloader", "pickerview")
+/**
+ * 1. 清单文件，添加： xmlns:tools="http://schemas.android.com/tools"
+ * 2. R、BuildConfig、DataBinding 的替换
+ * 3. DataBindingUtil、ViewDataBinding 的替换
+ *      import android.databinding.DataBindingUtil;         import com.fmxos.platform.databinding.DataBindingUtil;
+ *      import android.databinding.ViewDataBinding;         import com.fmxos.platform.databinding.ViewDataBinding;
+ */
+
+/*
+R 正则表达式替换：
+
+ ^import com.fmxos.[a-zA-Z_0-9.]*?.R;$
+值：
+
+ import com.fmxos.platform.R;
+BuildConfig 正则表达式替换：
+
+ ^import com.fmxos.[a-zA-Z_0-9.]*?.BuildConfig;$
+值：
+
+ import com.fmxos.platform.BuildConfig;
+DataBinding 正则替换：
+
+ ^import com.fmxos.[a-zA-Z_0-9.]*?.([a-zA-Z_0-9]*?Binding);$
+值:
+
+ import com.fmxos.platform.databinding.$1;
+ */
+
+val packageNameReplaceMap = mapOf<String, String>(
+        "import com.fmxos.[a-zA-Z_0-9.]*?.R;" to "import com.fmxos.platform.R;",
+        "import com.fmxos.[a-zA-Z_0-9.]*?.BuildConfig;" to "import com.fmxos.platform.BuildConfig;",
+        "import com.fmxos.[a-zA-Z_0-9.]*?.([a-zA-Z_0-9]*?Binding);" to "import com.fmxos.platform.databinding.$1;",
+        "import android.databinding.DataBindingUtil;" to "import com.fmxos.platform.databinding.DataBindingUtil;",
+        "import android.databinding.ViewDataBinding;" to "import com.fmxos.platform.databinding.ViewDataBinding;"
+)
 
 fun main(args: Array<String>) {
+    execMerge(projectPath, outputPath, mergeLibName, true)
+}
+
+fun execMerge(projectPath: String, outputPath: String, mergeLibName: Array<String>, createGradle: Boolean) {
     val startTime = System.currentTimeMillis()
 
     var projectFile = ItemFile("")
     mergeLibName.forEach {
-        addItemFile(projectFile, createLibDir(it), projectPath, it, true)
+        addItemFile(projectFile, createLibDir(it, createGradle), projectPath, it, true)
     }
 
     println("fileCount = $fileCount      dirCount = $dirCount")
@@ -36,7 +73,7 @@ fun main(args: Array<String>) {
     }
 }
 
-fun createLibDir(name: String): ItemFile {
+fun createLibDir(name: String, createGradle: Boolean): ItemFile {
     val libDirs = ItemFile(name).addItemFile(
             ItemFile("libs"),
             ItemFile("src").addItemFile(
@@ -48,9 +85,11 @@ fun createLibDir(name: String): ItemFile {
                             ItemFile("res"),
                             ItemFile("AndroidManifest.xml", false)
                     )
-            ),
-            ItemFile("build.gradle", false)
+            )
     )
+    if (createGradle) {
+        libDirs.addItemFile(ItemFile("build.gradle", false))
+    }
     return libDirs
 }
 
@@ -109,23 +148,39 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, outParentFile: File, 
             writeItemFile(it, inParentFile + "/" + libDirs.name, mFile, libDirs.name, ceng + 1)
         }
     } else {
-        var file = File(outParentFile, libDirs.name)
+        var outputFile = File(outParentFile, libDirs.name)
 //        println("writeFile file = " + file.absolutePath)
-        if (file.exists()) {
+        if (outputFile.exists()) {
             if (parentName.startsWith("values") && libDirs.name.endsWith(".xml")) {
-                appendResourceFile(File(inParentFile, libDirs.name), file)
-                appendFile.add(file.absolutePath)
+                appendResourceFile(File(inParentFile, libDirs.name), outputFile)
+                appendFile.add(outputFile.absolutePath)
             } else if ("AndroidManifest.xml".equals(libDirs.name)){
-                appendManifestFile(File(inParentFile, libDirs.name), file)
-                appendFile.add(file.absolutePath)
+                appendManifestFile(File(inParentFile, libDirs.name), outputFile)
+                appendFile.add(outputFile.absolutePath)
             } else if ("build.gradle".equals(libDirs.name)){
-                appendGradle(File(inParentFile, libDirs.name), file)
-                appendFile.add(file.absolutePath)
+                appendGradle(File(inParentFile, libDirs.name), outputFile)
+                appendFile.add(outputFile.absolutePath)
             } else {
-                repeatFile.add(file.absolutePath)
+                repeatFile.add(outputFile.absolutePath)
             }
         } else {
-            FileUtil.copyFile(File(inParentFile, libDirs.name), file)
+            var inputFile = File(inParentFile, libDirs.name)
+            var hasChange = false
+            if (inputFile.name.endsWith(".java")) {
+                var fileContent = FileUtil.readFile(inputFile.absolutePath)
+                var newContent = fileContent
+                packageNameReplaceMap.keys.forEach {
+                    newContent = newContent.replaceFirst(it.toRegex(), packageNameReplaceMap[it].toString())
+                }
+                if (fileContent != newContent) {
+                    hasChange = true
+                    FileUtil.writeFile(outputFile, newContent)
+                    println(" changeFile ---------------- " + outputFile.name)
+                }
+            }
+            if (!hasChange) {
+                FileUtil.copyFile(inputFile, outputFile)
+            }
         }
     }
 }
@@ -197,6 +252,7 @@ fun appendManifestFile(fromFile: File, toFile: File) {
     var resultSb = StringBuilder()
     resultSb.append("""
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.fmxos.platform">
     """.trimIndent()).append("\n")
 
