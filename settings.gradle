@@ -1,0 +1,2 @@
+include ':app', ':moduleA', ':moduleB', ':moduleC', ':moduleD'
+include ':produce'

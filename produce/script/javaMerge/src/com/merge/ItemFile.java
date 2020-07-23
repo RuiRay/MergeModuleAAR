@@ -1,4 +1,4 @@
-package utils;
+package com.merge;
 
 import java.util.ArrayList;
 import java.util.Arrays;

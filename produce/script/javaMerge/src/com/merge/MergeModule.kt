@@ -1,7 +1,7 @@
-package merge
+package com.merge
 
-import utils.FileUtil
-import utils.ItemFile
+import com.utils.FileUtil
+import com.utils.EncodeUtil
 import java.io.File
 import java.util.*
 import java.util.regex.Pattern
@@ -37,18 +37,18 @@ DataBinding 正则替换：
  */
 
 val packageNameReplaceMap = mapOf<String, String>(
-        "import com.fmxos.[a-zA-Z_0-9.]*?.R;" to "import com.fmxos.platform.R;",
-        "import com.fmxos.[a-zA-Z_0-9.]*?.BuildConfig;" to "import com.fmxos.platform.BuildConfig;",
-        "import com.fmxos.[a-zA-Z_0-9.]*?.([a-zA-Z_0-9]*?Binding);" to "import com.fmxos.platform.databinding.$1;",
+        "import com\\.[a-zA-Z_0-9.]*?\\.R;" to "import ${LIBRARY_PACKAGE_NAME}.R;",
+        "import com\\.[a-zA-Z_0-9.]*?\\.BuildConfig;" to "import ${LIBRARY_PACKAGE_NAME}.BuildConfig;",
+        "import com\\.[a-zA-Z_0-9.]*?\\.([a-zA-Z_0-9]*?Binding);" to "import com.fmxos.platform.databinding.$1;",
         "import android.databinding.DataBindingUtil;" to "import com.fmxos.platform.databinding.DataBindingUtil;",
         "import android.databinding.ViewDataBinding;" to "import com.fmxos.platform.databinding.ViewDataBinding;"
 )
 
-fun main(args: Array<String>) {
-    execMerge(projectPath, outputPath, mergeLibName, true)
-}
+//fun main(args: Array<String>) {
+//    execMerge(projectPath, outputPath, mergeLibName, true)
+//}
 
-fun execMerge(projectPath: String, outputPath: String, mergeLibName: Array<String>, createGradle: Boolean) {
+fun execMerge(projectPath: String, outputPath: String, mergeTag: String, mergeLibName: Array<String>, createGradle: Boolean) {
     val startTime = System.currentTimeMillis()
 
     var projectFile = ItemFile("")
@@ -56,12 +56,12 @@ fun execMerge(projectPath: String, outputPath: String, mergeLibName: Array<Strin
         addItemFile(projectFile, createLibDir(it, createGradle), projectPath, it, true)
     }
 
-    println("fileCount = $fileCount      dirCount = $dirCount")
+    println("fileCount = ${fileCount}      dirCount = ${dirCount}")
 //    printItemFile(projectFile, 0)
 
     println("readTime = " + (System.currentTimeMillis() - startTime))
 
-    writeItemFile(projectFile, projectPath, File(outputPath), "FmxosPlatform", 0)
+    writeItemFile(projectFile, projectPath, mergeTag, File(outputPath), "FmxosPlatform", 0, outputPath)
 
     println("endTime = " + (System.currentTimeMillis() - startTime))
 
@@ -102,14 +102,14 @@ fun addItemFile(itemFile: ItemFile, libDirs: ItemFile?, basePath: String, name: 
             var mItem = ItemFile(name, isDir)
             itemFile.addItemFile(mItem)
             var mPath = basePath +"/"+ name
-            File(mPath).listFiles().forEach {
+            File(mPath).listFiles()?.forEach {
                 addItemFile(mItem, null, mPath, it.name, it.isDirectory)
             }
-            dirCount ++
+            dirCount++
         } else {
             if (!name.startsWith(".")){
                 itemFile.addItemFile(ItemFile(name, isDir))
-                fileCount ++
+                fileCount++
             }
         }
     } else {
@@ -118,14 +118,14 @@ fun addItemFile(itemFile: ItemFile, libDirs: ItemFile?, basePath: String, name: 
             var mItem = ItemFile(name, isDir)
             itemFile.addItemFile(mItem)
             var mPath = basePath +"/"+ name
-            File(mPath).listFiles().forEach {
+            File(mPath).listFiles()?.forEach {
                 addItemFile(mItem, hasChild, mPath, it.name, it.isDirectory)
             }
-            dirCount ++
+            dirCount++
         } else {
             if (libDirs.hasChild(name) != null && !name.startsWith(".")) {
                 itemFile.addItemFile(ItemFile(name, isDir))
-                fileCount ++
+                fileCount++
             }
         }
     }
@@ -134,7 +134,7 @@ fun addItemFile(itemFile: ItemFile, libDirs: ItemFile?, basePath: String, name: 
 val repeatFile = arrayListOf<String>()
 val appendFile = arrayListOf<String>()
 
-fun writeItemFile(libDirs: ItemFile, inParentFile: String, outParentFile: File, parentName: String, ceng: Int) {
+fun writeItemFile(libDirs: ItemFile, inParentFile: String, mergeTag: String, outParentFile: File, parentName: String, ceng: Int, outputPath: String) {
     if (libDirs.isDir) {
         if (libDirs.children.isEmpty()) {
             return
@@ -145,7 +145,7 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, outParentFile: File, 
             mFile.mkdir()
         }
         libDirs.children.forEach {
-            writeItemFile(it, inParentFile + "/" + libDirs.name, mFile, libDirs.name, ceng + 1)
+            writeItemFile(it, inParentFile + "/" + libDirs.name, mergeTag, mFile, libDirs.name, ceng + 1, outputPath)
         }
     } else {
         var outputFile = File(outParentFile, libDirs.name)
@@ -166,13 +166,55 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, outParentFile: File, 
         } else {
             var inputFile = File(inParentFile, libDirs.name)
             var hasChange = false
+            var skipFile = false
             if (inputFile.name.endsWith(".java")) {
-                var fileContent = FileUtil.readFile(inputFile.absolutePath)
+                val sBuilder = StringBuilder()
+                var hasReplace = false
+                var removeNextLine = false
+                var encodeNextLine = false
+                FileUtil.readFile(File(inputFile.absolutePath), FileUtil.ReaderCallback {
+                    var line = it
+                    if (removeNextLine) {
+                        line = ""
+                        removeNextLine = false
+                        hasReplace = true
+                    } else if (encodeNextLine) {
+                        line = encodeLineText(line, outputPath)
+                        encodeNextLine = false
+                        hasReplace = true
+                    } else if (line.startsWith("//MergeReplaceNext>")) {
+                        /*val key = line.replace("//MergeReplaceNext>([!a-zA-Z0-9]*).*".toRegex(), "$1")
+                        if (key.isNotEmpty()) {
+                            if (key.equals("!" + mergeTag)) {
+                            }
+                        }*/
+                        line = line.replaceFirst("//MergeReplaceNext>([!a-zA-Z0-9]*)".toRegex(), "")
+                        removeNextLine = true
+                        hasReplace = true
+                    } else if (line.startsWith("//MergeOpen>")) {
+                        line = line.replaceFirst("//MergeOpen>([!a-zA-Z0-9]*)".toRegex(), "")
+                        hasReplace = true
+                    } else if (line.startsWith("//EncodeReplaceNext>")) {
+                        line = ""
+                        encodeNextLine = true
+                        hasReplace = true
+                    } else if (line.startsWith("//SkipFile>")) {
+                        skipFile = true
+                        return@ReaderCallback false
+                    }
+                    sBuilder.append(line).append(System.getProperty("line.separator"))
+                    return@ReaderCallback true
+                })
+                if (skipFile) {
+                    println(" skipFile ---------------- " + outputFile.name)
+                    return
+                }
+                var fileContent = sBuilder.toString()
                 var newContent = fileContent
                 packageNameReplaceMap.keys.forEach {
                     newContent = newContent.replaceFirst(it.toRegex(), packageNameReplaceMap[it].toString())
                 }
-                if (fileContent != newContent) {
+                if (hasReplace || fileContent != newContent) {
                     hasChange = true
                     FileUtil.writeFile(outputFile, newContent)
                     println(" changeFile ---------------- " + outputFile.name)
@@ -182,6 +224,105 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, outParentFile: File, 
                 FileUtil.copyFile(inputFile, outputFile)
             }
         }
+    }
+}
+
+// 编码要加密的字符串
+var hasWriteMergeCodeUtil = false
+fun encodeLineText(content: String, outputPath: String): String {
+    if (!hasWriteMergeCodeUtil) {
+        hasWriteMergeCodeUtil = true
+        writeMergeCodeUtil(outputPath)
+    }
+    var line = content
+    var matcher = Pattern.compile("\"(.+?)\"").matcher(line)
+    while (matcher.find()) {
+        var message = matcher.group(1)
+        var encodeMsg = toByteString(EncodeUtil.encode(message.toByteArray()))
+        encodeMsg = "com.fmxos.platform.utils.EncodeUtil.parseArrayToText$encodeMsg"
+        line = line.replaceFirst("\"$message\"", encodeMsg)
+    }
+    return line
+}
+
+fun writeMergeCodeUtil(outputPath: String) {
+    val outputDataBindingPath = outputPath + "/src/main/java/com/fmxos/platform/utils"
+    var outputFile = File(outputDataBindingPath)
+    if (!outputFile.exists()) {
+        outputFile.mkdirs()
+    }
+    FileUtil.writeFile(File(outputFile, "EncodeUtil.java"), MergeCodeUtilText)
+}
+
+val MergeCodeUtilText = """
+package com.fmxos.platform.utils;
+
+public class EncodeUtil {
+
+    public static byte[] parseArray(int... arr) {
+        byte[] content = new byte[arr.length];
+        int index = 0;
+        for (int i : arr) {
+            content[index++] = (byte) i;
+        }
+        content = decode(content);
+        return content;
+    }
+
+    public static String parseArrayToText(int... arr) {
+        byte[] content = new byte[arr.length];
+        int index = 0;
+        for (int i : arr) {
+            content[index++] = (byte) i;
+        }
+        content = decode(content);
+        return new String(content);
+    }
+
+    public static byte[] encode(byte[] bytes) {
+        if (bytes == null || bytes.length < 2) {
+            return bytes;
+        }
+        int length = bytes.length / 2;
+        for (int i = 0; i < length; i++) {
+            byte temp = bytes[i];
+            bytes[i] = bytes[length+i];
+            bytes[length+i] = temp;
+        }
+        return bytes;
+    }
+
+    public static byte[] decode(byte[] bytes) {
+        if (bytes == null || bytes.length < 2) {
+            return bytes;
+        }
+        int length = bytes.length / 2;
+        for (int i = 0; i < length; i++) {
+            byte temp = bytes[i];
+            bytes[i] = bytes[length+i];
+            bytes[length+i] = temp;
+        }
+        return bytes;
+    }
+}
+""".trimIndent()
+
+fun toByteString(a: ByteArray?): String {
+    if (a == null)
+        return "()"
+    val iMax = a.size - 1
+    if (iMax == -1)
+        return "()"
+
+    val b = StringBuilder()
+    b.append("(")
+    var i = 0
+    while (true) {
+        b.append(a[i].toInt())
+        if (i == iMax)
+            return b.append(")").toString()
+        b.append(", ")
+        i++
     }
 }
 
@@ -253,7 +394,7 @@ fun appendManifestFile(fromFile: File, toFile: File) {
     resultSb.append("""
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.fmxos.platform">
+    package="${LIBRARY_PACKAGE_NAME}">
     """.trimIndent()).append("\n")
 
     permissionList.forEach {

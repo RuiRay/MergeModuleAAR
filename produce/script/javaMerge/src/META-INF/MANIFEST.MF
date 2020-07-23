@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Class-Path: lib/kotlin-stdlib.jar lib/kotlin-re
+ flect.jar lib/kotlin-test.jar lib/kotlin-stdlib-jre7.jar lib/kotli
+ n-stdlib-jre8.jar
+Main-Class: com.merge.OneSetupKt
+

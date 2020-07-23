@@ -1,6 +1,6 @@
-package merge
+package com.merge
 
-import utils.FileUtil
+import com.utils.FileUtil
 import java.io.File
 import java.util.regex.Pattern
 
@@ -9,7 +9,7 @@ val dataBindingPath = "/src/main/java/com/fmxos/platform/databinding"
 
 fun main(args: Array<String>) {
 
-    execDataBinding(outputPath)
+    execDataBinding("/Users/ionesmile/Documents/Project/Pad/PadAutoPackage/FmxosGene/FmxosPlatform")
 }
 
 fun execDataBinding(projectPath: String) {
@@ -40,10 +40,30 @@ fun execDataBinding(projectPath: String) {
 
     }
 
+    replaceLayoutExpandTag(projectPath)
+
     var mapDataBinding = codeList.toString().trim()
     mapDataBinding = mapDataBinding.replaceFirst("else ", "")
     FileUtil.writeFile(File(outputFile, "DataBindingUtil.java"), DataBindingUtil.replaceFirst("REPLACE_MAP_DATA_BINDING", mapDataBinding))
     println(mapDataBinding)
+}
+
+fun replaceLayoutExpandTag(projectPath: String) {
+    var listFiles = File(projectPath + "/src/main/res").listFiles()
+    listFiles.forEach { layoutDir ->
+        if (layoutDir.isDirectory && layoutDir.name.contains("layout-")) {
+            println("replaceLayoutExpandTag() ${layoutDir.name}")
+
+            var layoutFiles = layoutDir.listFiles()
+            layoutFiles.forEach {
+                var layoutContent = FileUtil.readFile(it.absolutePath).trim()
+                if (layoutContent.endsWith("</layout>")) {
+                    println("replaceLayoutExpandTag() ${layoutDir.name}    ${it.name}")
+                    replaceLayoutTag(layoutContent, it)
+                }
+            }
+        }
+    }
 }
 
 fun replaceLayoutTag(aaaa: String, sourceFile: File) {
@@ -136,7 +156,9 @@ val fullClassNameMap = mapOf<String, String>(
         "View" to "android.view.View",
         "LinearLayout" to "android.widget.LinearLayout",
         "RelativeLayout" to "android.widget.RelativeLayout",
-        "FrameLayout" to "android.widget.FrameLayout"
+        "FrameLayout" to "android.widget.FrameLayout",
+        "SeekBar" to "android.widget.SeekBar",
+        "ViewStub" to "android.view.ViewStub"
 )
 
 fun getFullClassName(viewClass: String): String {
@@ -169,7 +191,7 @@ package com.fmxos.platform.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 
-import com.fmxos.platform.R;
+import ${LIBRARY_PACKAGE_NAME}.R;
 
 public class REPLACE_CLASS_NAME implements ViewDataBinding {
 
@@ -211,7 +233,7 @@ package com.fmxos.platform.databinding;
 
 import android.view.LayoutInflater;
 
-import com.fmxos.platform.R;
+import ${LIBRARY_PACKAGE_NAME}.R;
 
 /**
  * Created by ionesmile on 19/07/2018.

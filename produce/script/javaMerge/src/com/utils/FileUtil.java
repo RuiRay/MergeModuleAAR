@@ -1,4 +1,4 @@
-package utils;
+package com.utils;
 
 import java.io.*;
 
@@ -8,8 +8,9 @@ public class FileUtil {
         StringBuilder sBuilder = new StringBuilder();
         readFile(new File(filePath), new ReaderCallback() {
             @Override
-            public void onReadLine(String line) {
+            public boolean onReadLine(String line) {
                 sBuilder.append(line).append(System.getProperty("line.separator"));
+                return true;
             }
         });
         return sBuilder.toString();
@@ -21,7 +22,9 @@ public class FileUtil {
             bReader = new BufferedReader(new FileReader(extraFile));
             String line;
             while ((line = bReader.readLine()) != null) {
-                readerCallback.onReadLine(line);
+                if (!readerCallback.onReadLine(line)) {
+                    break;
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -52,6 +55,30 @@ public class FileUtil {
             if (bWriter != null) {
                 try {
                     bWriter.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean writeFile(File file, byte[] bytes) {
+        if (bytes == null) {
+            return false;
+        }
+        BufferedOutputStream bos = null;
+        try {
+            bos = new BufferedOutputStream(new FileOutputStream(file));
+            bos.write(bytes);
+            bos.flush();
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (bos != null) {
+                try {
+                    bos.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -95,7 +122,7 @@ public class FileUtil {
 
     public interface ReaderCallback {
 
-        void onReadLine(String line);
+        boolean onReadLine(String line);
     }
 
     public static void removeDir(File dir) {
