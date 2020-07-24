@@ -5,8 +5,12 @@ import java.io.*;
 public class FileUtil {
 
     public static String readFile(String filePath) {
+        return readFile(new File(filePath));
+    }
+
+    public static String readFile(File filePath) {
         StringBuilder sBuilder = new StringBuilder();
-        readFile(new File(filePath), new ReaderCallback() {
+        readFile(filePath, new ReaderCallback() {
             @Override
             public boolean onReadLine(String line) {
                 sBuilder.append(line).append(System.getProperty("line.separator"));
@@ -17,6 +21,9 @@ public class FileUtil {
     }
 
     public static void readFile(File extraFile, ReaderCallback readerCallback) {
+        if (!extraFile.exists()) {
+            return;
+        }
         BufferedReader bReader = null;
         try {
             bReader = new BufferedReader(new FileReader(extraFile));
@@ -40,6 +47,7 @@ public class FileUtil {
     }
 
     public static boolean writeFile(File file, String content) {
+        checkCreateFile(file);
         if (content == null) {
             content = "";
         }
@@ -63,7 +71,22 @@ public class FileUtil {
         return false;
     }
 
+    private static void checkCreateFile(File toFile) {
+        if (!toFile.exists()) {
+            File parentFile = toFile.getParentFile();
+            if (!parentFile.exists()) {
+                parentFile.mkdirs();
+            }
+            try {
+                toFile.createNewFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     public static boolean writeFile(File file, byte[] bytes) {
+        checkCreateFile(file);
         if (bytes == null) {
             return false;
         }

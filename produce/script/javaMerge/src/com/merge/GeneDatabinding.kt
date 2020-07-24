@@ -4,15 +4,10 @@ import com.utils.FileUtil
 import java.io.File
 import java.util.regex.Pattern
 
-val layoutPath = "/src/main/res/layout"
-val dataBindingPath = "/src/main/java/com/fmxos/platform/databinding"
+fun execDataBinding(projectPath: String, packageName: String) {
 
-fun main(args: Array<String>) {
-
-    execDataBinding("/Users/ionesmile/Documents/Project/Pad/PadAutoPackage/FmxosGene/FmxosPlatform")
-}
-
-fun execDataBinding(projectPath: String) {
+    val layoutPath = "/src/main/res/layout"
+    val dataBindingPath = "/src/main/java/${packageName.replace(".", "/")}/databinding"
 
     val outputDataBindingPath = projectPath + dataBindingPath
     val baseLayoutPath = projectPath + layoutPath
@@ -21,19 +16,19 @@ fun execDataBinding(projectPath: String) {
     if (!outputFile.exists()) {
         outputFile.mkdirs()
 
-        FileUtil.writeFile(File(outputFile, "ViewDataBinding.java"), ViewDataBinding)
+        FileUtil.writeFile(File(outputFile, "ViewDataBinding.java"), ViewDataBinding.replace("[PACKAGE_NAME]", packageName))
     }
 
     var codeList = StringBuilder()
     var layoutFiles = File(baseLayoutPath).listFiles()
-    layoutFiles.forEach {
+    layoutFiles?.forEach {
 
         var layoutContent = FileUtil.readFile(it.absolutePath).trim()
 
         if (layoutContent.endsWith("</layout>")) {
             println(it.name)
 
-            geneCode(outputDataBindingPath, layoutContent, it, codeList)
+            geneCode(outputDataBindingPath, layoutContent, it, codeList, packageName)
 
             replaceLayoutTag(layoutContent, it)
         }
@@ -44,7 +39,7 @@ fun execDataBinding(projectPath: String) {
 
     var mapDataBinding = codeList.toString().trim()
     mapDataBinding = mapDataBinding.replaceFirst("else ", "")
-    FileUtil.writeFile(File(outputFile, "DataBindingUtil.java"), DataBindingUtil.replaceFirst("REPLACE_MAP_DATA_BINDING", mapDataBinding))
+    FileUtil.writeFile(File(outputFile, "DataBindingUtil.java"), DataBindingUtil.replace("[PACKAGE_NAME]", packageName).replaceFirst("REPLACE_MAP_DATA_BINDING", mapDataBinding))
     println(mapDataBinding)
 }
 
@@ -85,7 +80,7 @@ fun replaceLayoutTag(aaaa: String, sourceFile: File) {
 
 }
 
-private fun geneCode(outputDataBindingPath: String, layoutContent: String, sourceFile: File, codeList: StringBuilder) {
+private fun geneCode(outputDataBindingPath: String, layoutContent: String, sourceFile: File, codeList: StringBuilder, packageName: String) {
     var findList = find(layoutContent, "<(((?!<)[\\s\\S])+?)android:id=\"([\\S]+?)\"", 0)
     var fieldList = arrayListOf<String>()
     var findIdList = arrayListOf<String>()
@@ -108,6 +103,7 @@ private fun geneCode(outputDataBindingPath: String, layoutContent: String, sourc
 
     var newClassName = geneClassName(sourceFile.name)
     var content = javaBinding.replace("REPLACE_FIELD_LIST", getListContent(fieldList))
+            .replace("[PACKAGE_NAME]", packageName)
             .replace("REPLACE_FIND_LIST", getListContent(findIdList))
             .replace("REPLACE_CLASS_NAME", newClassName)
 
@@ -186,12 +182,12 @@ fun getListContent(fieldList: ArrayList<String>): String {
 
 
 val javaBinding = """
-package com.fmxos.platform.databinding;
+package [PACKAGE_NAME].databinding;
 
 import android.view.LayoutInflater;
 import android.view.View;
 
-import ${LIBRARY_PACKAGE_NAME}.R;
+import [PACKAGE_NAME].R;
 
 public class REPLACE_CLASS_NAME implements ViewDataBinding {
 
@@ -210,16 +206,10 @@ REPLACE_FIND_LIST
 }
 """.trimIndent()
 
-
-
 val ViewDataBinding = """
-package com.fmxos.platform.databinding;
+package [PACKAGE_NAME].databinding;
 
 import android.view.View;
-
-/**
- * Created by ionesmile on 19/07/2018.
- */
 
 public interface ViewDataBinding {
 
@@ -229,15 +219,11 @@ public interface ViewDataBinding {
 
 
 val DataBindingUtil = """
-package com.fmxos.platform.databinding;
+package [PACKAGE_NAME].databinding;
 
 import android.view.LayoutInflater;
 
-import ${LIBRARY_PACKAGE_NAME}.R;
-
-/**
- * Created by ionesmile on 19/07/2018.
- */
+import [PACKAGE_NAME].R;
 
 public class DataBindingUtil {
 

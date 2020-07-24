@@ -2,6 +2,15 @@
 
 basedir=`cd $(dirname $0); pwd -P`
 
+OriginProject=${basedir%produce/script*}
+PACKAGE_NAME="com.ruiray.sdk"
+RES_PREFIX="rrs_"
+
+# 项目相关库
+MergeModuleName=("moduleA" "moduleB")
+MergeModuleName[${#MergeModuleName[@]}]="moduleC"
+MergeModuleName[${#MergeModuleName[@]}]="path>/Users/ionesmile/Documents/iOnesmileDocs/WorkSpace/GitHubSpace/MergeModuleAAR/moduleD"
+
 
 function logi(){
 	echo "##############################################################################"
@@ -40,21 +49,19 @@ function checkResultCode(){
 
 start_time=$(date +%s)
 
-logi "merge module: "${MergeModuleName[@]}
+logi "config: " $OriginProject ${MergeModuleName[@]}
 
 # 调用 java，执行合成代码功能
-java -jar $basedir/MergeModule_jar/MergeModule.jar $OriginProject "$GeneProject/main" "exo" ${MergeModuleName[*]}
+java -jar $basedir/javaMerge.jar $OriginProject "$OriginProject/produce" $PACKAGE_NAME $RES_PREFIX "exo" ${MergeModuleName[*]}
 checkResultCode "java MergeModule"
 
-cd $GeneProject
+cd $OriginProject
 
 sh gradlew clean
 checkResultCode "gradlew clean"
 
-sh gradlew assembleRelease
+sh gradlew :produce:assembleRelease
 checkResultCode "gradlew assembleRelease"
-
-# sh gradlew :produce:assembleSdk_dushulangRelease
 
 logi 'END... time:'$(($(date +%s)-start_time))"s"
 

@@ -17,9 +17,19 @@ Android Gradle 打包每个库工程都会导出一个 AAR 文件。之前有尝
 
 <br/><br/>
 
+## javaMerge 快速使用
+
+请先下载jar文件： MergeModuleAAR/produce/script/javaMerge.jar
+
+```
+java -jar javaMerge.jar $ProjectPath "$ProjectPath/produce" $PACKAGE_NAME $RES_PREFIX "exo" ${MergeModuleName[*]}
+```
+
+> 具体使用参数参见： /MergeModuleAAR/produce/script/runSDK.sh
+
 ## javaMerge 项目编译说明
 
-- 打开 [IEDA](https://www.jetbrains.com/idea/download/#section=mac) 编辑器；
+- 打开 [IDEA](https://www.jetbrains.com/idea/download/#section=mac) 编辑器；
 - File -> Open，选择 javaMerge 目录导入；
 - File -> `Project Structure`：
     - Project Setting -> `Project`：

@@ -5,11 +5,13 @@ import java.util.*;
 
 public class MergeMain {
 
-    public static void execMerge(String projectPath, String outputPath, String mergeTag, String[] mergeLibName, boolean createGradle) {
+    public static void execMerge(String projectPath, String outputPath, String mergeTag, String packageName, String[] mergeLibName, boolean createGradle) {
         long startTime = System.currentTimeMillis();
 
         List<ItemFileModule> itemFiles = new ArrayList<>();
         List<Module> moduleArr = parseModuleList(projectPath, mergeLibName);
+
+        MergeModule MergeModuleKt = new MergeModule(packageName);
 
         for (Module module : moduleArr) {
             ItemFile itemFile = new ItemFile("");
@@ -25,7 +27,7 @@ public class MergeMain {
         println("readTime = " + (System.currentTimeMillis() - startTime));
 
         for (ItemFileModule itemFile : itemFiles) {
-            MergeModuleKt.writeItemFile(itemFile.itemFile, itemFile.basePath, mergeTag, new File(outputPath), "FmxosPlatform", 0, outputPath);
+            MergeModuleKt.writeItemFile(itemFile.itemFile, itemFile.basePath, mergeTag, new File(outputPath), "rootDir", 0, outputPath);
         }
 
         println("endTime = " + (System.currentTimeMillis() - startTime));
@@ -36,16 +38,6 @@ public class MergeMain {
         for (String it : MergeModuleKt.getAppendFile()) {
             println("appendFile ->    " + it);
         }
-    }
-
-    public static void main(String[] args) {
-        List<Module> modules = parseModuleList("aaaa", new String[]{
-                "111111", "2222222",
-                "path>/Users/ionesmile/Documents/iOnesmileDocs/WorkSpace/Xiaoya/LibraryOS/ximalayaos",
-                "path>/Users/ionesmile/Documents/Project/云内容SDK/Publish/AutoPackage/release",
-                "path>/Users/ionesmile/Documents/Project/云内容SDK/Publish/AutoPackage/FmxosMerge"
-        });
-        println(modules.toString());
     }
 
     private static List<Module> parseModuleList(String projectPath, String[] mergeLibName) {

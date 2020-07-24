@@ -1,8 +1,9 @@
 package com.utils;
 
-import com.merge.ResPrefix;
-
 import java.io.File;
+
+import static com.utils.FileUtil.readFile;
+import static com.utils.FileUtil.writeFile;
 
 public class Utils {
 
@@ -31,19 +32,21 @@ public class Utils {
             return;
         }
         StringBuilder fileContent = new StringBuilder();
-        ResPrefix.readFile(file, new ResPrefix.ReaderCallback() {
+        readFile(file, new FileUtil.ReaderCallback() {
             String separator = System.getProperty("line.separator");
             boolean write = false;
+
             @Override
-            public void onReadLine(String line) {
+            public boolean onReadLine(String line) {
                 if (!write && line.startsWith("package ")) {
                     line += separator;
                     line += packLine;
                     write = true;
                 }
                 fileContent.append(line).append(separator);
+                return true;
             }
         });
-        ResPrefix.writeFile(file, fileContent.toString());
+        writeFile(file, fileContent.toString());
     }
 }

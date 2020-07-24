@@ -11,67 +11,21 @@ import kotlin.collections.ArrayList
  * 1. 清单文件，添加： xmlns:tools="http://schemas.android.com/tools"
  * 2. R、BuildConfig、DataBinding 的替换
  * 3. DataBindingUtil、ViewDataBinding 的替换
- *      import android.databinding.DataBindingUtil;         import com.fmxos.platform.databinding.DataBindingUtil;
- *      import android.databinding.ViewDataBinding;         import com.fmxos.platform.databinding.ViewDataBinding;
+ *      import android.databinding.DataBindingUtil;         import $packageName.databinding.DataBindingUtil;
+ *      import android.databinding.ViewDataBinding;         import $packageName.databinding.ViewDataBinding;
  */
 
-/*
-R 正则表达式替换：
 
- ^import com.fmxos.[a-zA-Z_0-9.]*?.R;$
-值：
+class MergeModule constructor(val packageName: String) {
 
- import com.fmxos.platform.R;
-BuildConfig 正则表达式替换：
-
- ^import com.fmxos.[a-zA-Z_0-9.]*?.BuildConfig;$
-值：
-
- import com.fmxos.platform.BuildConfig;
-DataBinding 正则替换：
-
- ^import com.fmxos.[a-zA-Z_0-9.]*?.([a-zA-Z_0-9]*?Binding);$
-值:
-
- import com.fmxos.platform.databinding.$1;
- */
-
+// 正则表达式替换
 val packageNameReplaceMap = mapOf<String, String>(
-        "import com\\.[a-zA-Z_0-9.]*?\\.R;" to "import ${LIBRARY_PACKAGE_NAME}.R;",
-        "import com\\.[a-zA-Z_0-9.]*?\\.BuildConfig;" to "import ${LIBRARY_PACKAGE_NAME}.BuildConfig;",
-        "import com\\.[a-zA-Z_0-9.]*?\\.([a-zA-Z_0-9]*?Binding);" to "import com.fmxos.platform.databinding.$1;",
-        "import android.databinding.DataBindingUtil;" to "import com.fmxos.platform.databinding.DataBindingUtil;",
-        "import android.databinding.ViewDataBinding;" to "import com.fmxos.platform.databinding.ViewDataBinding;"
+        "import com\\.[a-zA-Z_0-9.]*?\\.R;" to "import $packageName.R;",
+        "import com\\.[a-zA-Z_0-9.]*?\\.BuildConfig;" to "import $packageName.BuildConfig;",
+        "import com\\.[a-zA-Z_0-9.]*?\\.([a-zA-Z_0-9]*?Binding);" to "import $packageName.databinding.$1;",
+        "import android.databinding.DataBindingUtil;" to "import $packageName.databinding.DataBindingUtil;",
+        "import android.databinding.ViewDataBinding;" to "import $packageName.databinding.ViewDataBinding;"
 )
-
-//fun main(args: Array<String>) {
-//    execMerge(projectPath, outputPath, mergeLibName, true)
-//}
-
-fun execMerge(projectPath: String, outputPath: String, mergeTag: String, mergeLibName: Array<String>, createGradle: Boolean) {
-    val startTime = System.currentTimeMillis()
-
-    var projectFile = ItemFile("")
-    mergeLibName.forEach {
-        addItemFile(projectFile, createLibDir(it, createGradle), projectPath, it, true)
-    }
-
-    println("fileCount = ${fileCount}      dirCount = ${dirCount}")
-//    printItemFile(projectFile, 0)
-
-    println("readTime = " + (System.currentTimeMillis() - startTime))
-
-    writeItemFile(projectFile, projectPath, mergeTag, File(outputPath), "FmxosPlatform", 0, outputPath)
-
-    println("endTime = " + (System.currentTimeMillis() - startTime))
-
-    repeatFile.forEach {
-        println("repeatFile ->    " + it)
-    }
-    appendFile.forEach {
-        println("appendFile ->    " + it)
-    }
-}
 
 fun createLibDir(name: String, createGradle: Boolean): ItemFile {
     val libDirs = ItemFile(name).addItemFile(
@@ -101,13 +55,13 @@ fun addItemFile(itemFile: ItemFile, libDirs: ItemFile?, basePath: String, name: 
         if (isDir) {
             var mItem = ItemFile(name, isDir)
             itemFile.addItemFile(mItem)
-            var mPath = basePath +"/"+ name
+            var mPath = basePath + "/" + name
             File(mPath).listFiles()?.forEach {
                 addItemFile(mItem, null, mPath, it.name, it.isDirectory)
             }
             dirCount++
         } else {
-            if (!name.startsWith(".")){
+            if (!name.startsWith(".")) {
                 itemFile.addItemFile(ItemFile(name, isDir))
                 fileCount++
             }
@@ -117,7 +71,7 @@ fun addItemFile(itemFile: ItemFile, libDirs: ItemFile?, basePath: String, name: 
             var hasChild: ItemFile? = libDirs.hasChild(name) ?: return
             var mItem = ItemFile(name, isDir)
             itemFile.addItemFile(mItem)
-            var mPath = basePath +"/"+ name
+            var mPath = basePath + "/" + name
             File(mPath).listFiles()?.forEach {
                 addItemFile(mItem, hasChild, mPath, it.name, it.isDirectory)
             }
@@ -140,7 +94,6 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, mergeTag: String, out
             return
         }
         val mFile = File(outParentFile, if (ceng > 1) libDirs.name else "")
-//        println("writeDir dir = " + mFile.absolutePath)
         if (!mFile.exists()) {
             mFile.mkdir()
         }
@@ -149,15 +102,14 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, mergeTag: String, out
         }
     } else {
         var outputFile = File(outParentFile, libDirs.name)
-//        println("writeFile file = " + file.absolutePath)
         if (outputFile.exists()) {
             if (parentName.startsWith("values") && libDirs.name.endsWith(".xml")) {
                 appendResourceFile(File(inParentFile, libDirs.name), outputFile)
                 appendFile.add(outputFile.absolutePath)
-            } else if ("AndroidManifest.xml".equals(libDirs.name)){
+            } else if ("AndroidManifest.xml".equals(libDirs.name)) {
                 appendManifestFile(File(inParentFile, libDirs.name), outputFile)
                 appendFile.add(outputFile.absolutePath)
-            } else if ("build.gradle".equals(libDirs.name)){
+            } else if ("build.gradle".equals(libDirs.name)) {
                 appendGradle(File(inParentFile, libDirs.name), outputFile)
                 appendFile.add(outputFile.absolutePath)
             } else {
@@ -183,11 +135,6 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, mergeTag: String, out
                         encodeNextLine = false
                         hasReplace = true
                     } else if (line.startsWith("//MergeReplaceNext>")) {
-                        /*val key = line.replace("//MergeReplaceNext>([!a-zA-Z0-9]*).*".toRegex(), "$1")
-                        if (key.isNotEmpty()) {
-                            if (key.equals("!" + mergeTag)) {
-                            }
-                        }*/
                         line = line.replaceFirst("//MergeReplaceNext>([!a-zA-Z0-9]*)".toRegex(), "")
                         removeNextLine = true
                         hasReplace = true
@@ -229,6 +176,7 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, mergeTag: String, out
 
 // 编码要加密的字符串
 var hasWriteMergeCodeUtil = false
+
 fun encodeLineText(content: String, outputPath: String): String {
     if (!hasWriteMergeCodeUtil) {
         hasWriteMergeCodeUtil = true
@@ -239,14 +187,14 @@ fun encodeLineText(content: String, outputPath: String): String {
     while (matcher.find()) {
         var message = matcher.group(1)
         var encodeMsg = toByteString(EncodeUtil.encode(message.toByteArray()))
-        encodeMsg = "com.fmxos.platform.utils.EncodeUtil.parseArrayToText$encodeMsg"
+        encodeMsg = "$packageName.utils.EncodeUtil.parseArrayToText$encodeMsg"
         line = line.replaceFirst("\"$message\"", encodeMsg)
     }
     return line
 }
 
 fun writeMergeCodeUtil(outputPath: String) {
-    val outputDataBindingPath = outputPath + "/src/main/java/com/fmxos/platform/utils"
+    val outputDataBindingPath = outputPath + "/src/main/java/${packageName.replace(".", "/")}/utils"
     var outputFile = File(outputDataBindingPath)
     if (!outputFile.exists()) {
         outputFile.mkdirs()
@@ -255,7 +203,7 @@ fun writeMergeCodeUtil(outputPath: String) {
 }
 
 val MergeCodeUtilText = """
-package com.fmxos.platform.utils;
+package $packageName.utils;
 
 public class EncodeUtil {
 
@@ -394,7 +342,7 @@ fun appendManifestFile(fromFile: File, toFile: File) {
     resultSb.append("""
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="${LIBRARY_PACKAGE_NAME}">
+    package="$packageName">
     """.trimIndent()).append("\n")
 
     permissionList.forEach {
@@ -535,6 +483,8 @@ fun replacePackageName(fromText: String): String {
         return replace
     }
     return fromText
+}
+
 }
 
 

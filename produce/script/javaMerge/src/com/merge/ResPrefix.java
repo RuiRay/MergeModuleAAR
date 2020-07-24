@@ -1,14 +1,20 @@
 package com.merge;
 
+import com.utils.FileUtil;
+
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.utils.FileUtil.readFile;
+import static com.utils.FileUtil.writeFile;
+import static com.utils.FileUtil.ReaderCallback;
+
 public class ResPrefix {
 
-    public static final String RES_PREFIX = "xys_";
+    public final String RES_PREFIX;
     private Map<String, String> animSet = new HashMap<>();
     private Map<String, String> drawableSet = new HashMap<>();
     private Map<String, String> mipmapSet = new HashMap<>();
@@ -21,6 +27,11 @@ public class ResPrefix {
     private Map<String, String> arraySet = new HashMap<>();
     private Map<String, String> integerSet = new HashMap<>();
 //    private Map<String, String> styleSet = new HashMap<>();
+
+
+    public ResPrefix(String resPrefix) {
+        this.RES_PREFIX = resPrefix;
+    }
 
     public void addResPrefix(String srcPath) {
         initResSet(srcPath + "/res");
@@ -95,7 +106,7 @@ public class ResPrefix {
             Pattern integerPattern = Pattern.compile("R\\.integer\\.(\\w+)");
             String separator = System.getProperty("line.separator");
             @Override
-            public void onReadLine(String line) {
+            public boolean onReadLine(String line) {
                 line = matchLine(line, animPattern, "R.anim.", animSet);
                 line = matchLine(line, drawablePattern, "R.drawable.", drawableSet);
                 line = matchLine(line, mipmapPattern, "R.mipmap.", mipmapSet);
@@ -107,6 +118,7 @@ public class ResPrefix {
                 line = matchLine(line, arrayPattern, "R.array.", arraySet);
                 line = matchLine(line, integerPattern, "R.integer.", integerSet);
                 fileContent.append(line).append(separator);
+                return true;
             }
         });
         writeFile(itemFile, fileContent.toString());
@@ -128,7 +140,7 @@ public class ResPrefix {
             String separator = System.getProperty("line.separator");
 
             @Override
-            public void onReadLine(String line) {
+            public boolean onReadLine(String line) {
                 line = matchLine(line, animPattern, "@anim/", animSet);
                 line = matchLine(line, drawablePattern, "@drawable/", drawableSet);
                 line = matchLine(line, mipmapPattern, "@mipmap/", mipmapSet);
@@ -140,6 +152,7 @@ public class ResPrefix {
                 line = matchLine(line, arrayPattern, "@array/", arraySet);
                 line = matchLine(line, integerPattern, "@integer/", integerSet);
                 fileContent.append(line).append(separator);
+                return true;
             }
         });
         writeFile(itemFile, fileContent.toString());
@@ -168,6 +181,9 @@ public class ResPrefix {
 
     private void putAttrItemName(Map<String, String> styleJavaSet, Map<String, String> styleXmlSet, File srcFile) {
         String fileContent = readFile(srcFile);
+        if (fileContent.isEmpty()) {
+            return;
+        }
         final String ATTR_NAME = "declare-styleable";
         Pattern attrPattern = Pattern.compile("<$it(((?!<$it)[\\s\\S])+?)</$it>".replace("$it", ATTR_NAME));
         Pattern styleNamePattern = Pattern.compile(".*<declare-styleable +name=\"((\\w+))\".*");
@@ -233,7 +249,7 @@ public class ResPrefix {
             String separator = System.getProperty("line.separator");
 
             @Override
-            public void onReadLine(String line) {
+            public boolean onReadLine(String line) {
                 line = line.trim();
                 Matcher matcher = pattern.matcher(line);
                 if (matcher.matches()) {
@@ -244,85 +260,9 @@ public class ResPrefix {
                     }
                 }
                 fileContent.append(line).append(separator);
+                return true;
             }
         });
         writeFile(srcFile, fileContent.toString());
-    }
-
-    public static String readFile(File extraFile) {
-        StringBuilder fileContent = new StringBuilder();
-        String separator = System.getProperty("line.separator");
-        readFile(extraFile, new ReaderCallback() {
-            @Override
-            public void onReadLine(String line) {
-                fileContent.append(line).append(separator);
-            }
-        });
-        return fileContent.toString();
-    }
-
-    public static void readFile(File extraFile, ReaderCallback readerCallback) {
-        BufferedReader bReader = null;
-        try {
-            bReader = new BufferedReader(new FileReader(extraFile));
-            String line;
-            while ((line = bReader.readLine()) != null) {
-                readerCallback.onReadLine(line);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (bReader != null) {
-                try {
-                    bReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    public interface ReaderCallback {
-
-        void onReadLine(String line);
-    }
-
-    public static boolean writeFile(File file, String content) {
-        checkCreateFile(file);
-        if (content == null) {
-            content = "";
-        }
-        BufferedWriter bWriter = null;
-        try {
-            bWriter = new BufferedWriter(new java.io.FileWriter(file));
-            bWriter.write(content);
-            bWriter.flush();
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (bWriter != null) {
-                try {
-                    bWriter.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return false;
-    }
-
-    private static void checkCreateFile(File toFile) {
-        if (!toFile.exists()) {
-            File parentFile = toFile.getParentFile();
-            if (!parentFile.exists()) {
-                parentFile.mkdirs();
-            }
-            try {
-                toFile.createNewFile();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 }

@@ -2,7 +2,7 @@
 
 ## javaMerge 项目编译说明
 
-- 打开 IEDA 编辑器；
+- 打开 [IDEA](https://www.jetbrains.com/idea/download/#section=mac) 编辑器；
 - File -> Open，选择 javaMerge 目录导入；
 - File -> `Project Structure`：
 	- Project Setting -> `Project`：
