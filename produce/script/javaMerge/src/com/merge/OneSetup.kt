@@ -35,6 +35,8 @@ fun main(args: Array<String>) {
             "path>/Users/ionesmile/Documents/iOnesmileDocs/WorkSpace/GitHubSpace/MergeModuleAAR/moduleD"
             )*/
 
+    if (checkCommand(args)) return
+
     val projectPath = args[0]
     val outputPath = args[1]
     val packageName = args[2]
@@ -52,13 +54,22 @@ fun main(args: Array<String>) {
 
     ResPrefix(resPrefix).addResPrefix(outputPath + "/src/main/")
 
-    // fix
-    val baseCodePath = outputPath + "/src/main/java"
-    Utils.importPackageToFile(baseCodePath, "import $packageName.R;",
-            "")
-    Utils.importPackageToFile(baseCodePath, "import $packageName.BuildConfig;",
-            "com/ruiray/ModuleA.java",
-            "")
-
     println("OneSetup done.      moduleNames=${Arrays.toString(moduleNames)}")
+}
+
+fun checkCommand(args: Array<String>): Boolean {
+    val command = args[0]
+    when(command) {
+        "-fixPackage" -> {
+            val outputPath = args[1]
+            val baseCodePath = outputPath + "/src/main/java"
+            // 如： "import $packageName.R;"
+            val importPackageName = args[2]
+            val importFiles = args.copyOfRange(3, args.size)
+            println("\nfixPackage --> $baseCodePath   $importPackageName   ${Arrays.toString(importFiles)}")
+            Utils.importPackageToFile(baseCodePath, importPackageName, *importFiles)
+            return true
+        }
+    }
+    return false
 }

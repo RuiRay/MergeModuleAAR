@@ -16,6 +16,7 @@ public class Utils {
 
     public static void importPackageToFile(String basePath, String importPackage, String... javaNames) {
         for (String javaName : javaNames) {
+            System.out.println("====== importPackageToFile " + javaName);
             if (javaName == null || javaName.isEmpty()) {
                 continue;
             }
@@ -29,6 +30,7 @@ public class Utils {
 
     public static void importPackage(File file, String packLine) {
         if (!file.exists()) {
+            System.err.println("====== importPackage() file not exist!  " + file);
             return;
         }
         StringBuilder fileContent = new StringBuilder();

@@ -23,4 +23,9 @@ android {
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:24.2.0'
+
+    compile project(":moduleA")
+    compile project(":moduleB")
+    compile project(":moduleC")
+    compile project(":moduleD")
 }
