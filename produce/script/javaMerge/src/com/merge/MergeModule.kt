@@ -145,7 +145,7 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, mergeTag: String, out
                         line = ""
                         encodeNextLine = true
                         hasReplace = true
-                    } else if (line.startsWith("//SkipFile>")) {
+                    } else if (line.startsWith("//SkipFile>") && mergeTag != "_") {
                         skipFile = true
                         return@ReaderCallback false
                     }
@@ -173,6 +173,15 @@ fun writeItemFile(libDirs: ItemFile, inParentFile: String, mergeTag: String, out
         }
     }
 }
+
+    private fun parseMergeTag(line: String): String {
+        val pattern = Pattern.compile("//[a-zA-Z0-9]+>([!a-zA-Z0-9]*).*")
+        val matcher = pattern.matcher(line)
+        if (matcher.find()) {
+            return matcher.group(1)
+        }
+        return ""
+    }
 
 // 编码要加密的字符串
 var hasWriteMergeCodeUtil = false
