@@ -43,7 +43,7 @@ public class MergeMain {
     private static List<Module> parseModuleList(String projectPath, String[] mergeLibName) {
         List<Module> modules = new ArrayList<>();
 
-        Map<String, List<String>> libMap = new HashMap<>();
+        Map<String, List<String>> libMap = new LinkedHashMap<>();
 
         for (String libName : mergeLibName) {
             if (libName.startsWith("path>")) {

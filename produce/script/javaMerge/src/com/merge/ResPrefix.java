@@ -36,6 +36,7 @@ public class ResPrefix {
     public void addResPrefix(String srcPath) {
         // invalid res prefix
         if (RES_PREFIX == null || RES_PREFIX.isEmpty() || RES_PREFIX.equals("_")) {
+            System.out.println("ResPrefix addResPrefix prefix is null. " + RES_PREFIX);
             return;
         }
         initResSet(srcPath + "/res");
