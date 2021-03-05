@@ -23,6 +23,8 @@ val packageNameReplaceMap = mapOf<String, String>(
         "import com\\.[a-zA-Z_0-9.]*?\\.R;" to "import $packageName.R;",
         "import com\\.[a-zA-Z_0-9.]*?\\.BuildConfig;" to "import $packageName.BuildConfig;",
         "import com\\.[a-zA-Z_0-9.]*?\\.([a-zA-Z_0-9]*?Binding);" to "import $packageName.databinding.$1;",
+        "import androidx.databinding.DataBindingUtil;" to "import $packageName.databinding.DataBindingUtil;",
+        "import androidx.databinding.ViewDataBinding;" to "import $packageName.databinding.ViewDataBinding;",
         "import android.databinding.DataBindingUtil;" to "import $packageName.databinding.DataBindingUtil;",
         "import android.databinding.ViewDataBinding;" to "import $packageName.databinding.ViewDataBinding;"
 )
