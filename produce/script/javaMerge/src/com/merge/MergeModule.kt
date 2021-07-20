@@ -36,6 +36,7 @@ fun createLibDir(name: String, createGradle: Boolean): ItemFile {
                     ItemFile("main").addItemFile(
                             ItemFile("aidl"),
                             ItemFile("assets"),
+                            ItemFile("cpp"),
                             ItemFile("java"),
                             ItemFile("jniLibs"),
                             ItemFile("res"),
