@@ -53,7 +53,7 @@ public class FileUtil {
         }
         BufferedWriter bWriter = null;
         try {
-            bWriter = new BufferedWriter(new java.io.FileWriter(file));
+            bWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file),"utf-8"));
             bWriter.write(content);
             bWriter.flush();
             return true;
@@ -83,31 +83,6 @@ public class FileUtil {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    public static boolean writeFile(File file, byte[] bytes) {
-        checkCreateFile(file);
-        if (bytes == null) {
-            return false;
-        }
-        BufferedOutputStream bos = null;
-        try {
-            bos = new BufferedOutputStream(new FileOutputStream(file));
-            bos.write(bytes);
-            bos.flush();
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (bos != null) {
-                try {
-                    bos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return false;
     }
 
     public static void copyFile(File fromFile, File toFile) {
